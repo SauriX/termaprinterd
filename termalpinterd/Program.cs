@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using System.Text;
 using termalpinterd.Interfaces;
 using termalpinterd.services;
 
@@ -14,9 +15,16 @@ namespace termalprinterd
         {
             try
             {
-                bool startInTray = args.Contains("--startup"); // Detectar si se inició con Windows
 
-                // Inicializar configuración
+                // Registrar el proveedor para codificaciones no predeterminadas
+                Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+                // To customize application configuration such as set high DPI settings or default font,
+                // see https://aka.ms/applicationconfiguration.
+
+                bool startInTray = args.Contains("--startup"); // Detectar si se iniciÃ³ con Windows
+
+                // Inicializar configuraciÃ³n
+
                 ApplicationConfiguration.Initialize();
                 var services = new ServiceCollection();
                 ConfigureServices(services);
@@ -26,7 +34,7 @@ namespace termalprinterd
                     // Resolver el formulario principal y pasar el argumento
                     var mainForm = serviceProvider.GetRequiredService<Form1>();
 
-                    // Llamar a un método en Form1 para manejar la bandeja
+                    // Llamar a un mÃ©todo en Form1 para manejar la bandeja
                     mainForm.SetStartInTray(startInTray);
 
                     Application.Run(mainForm);

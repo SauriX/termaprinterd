@@ -11,11 +11,13 @@ using termalpinterd.Models;
 
 namespace termalpinterd.services
 {
-    public class WebSocketService:IWebSocketService
+    public class WebSocketService : IWebSocketService
     {
         private HttpListener _httpListener;
         private IPrinterService _printerService;
-        public WebSocketService(IPrinterService printerService) { 
+
+        public WebSocketService(IPrinterService printerService)
+        {
             _printerService = printerService;
         }
 
@@ -26,17 +28,22 @@ namespace termalpinterd.services
             _httpListener.Prefixes.Add("http://localhost:9090/");
 
             _httpListener.Start();
+            Console.WriteLine("Servidor WebSocket iniciado. Esperando conexiones...");
+
             while (_httpListener.IsListening)
             {
                 HttpListenerContext context = await _httpListener.GetContextAsync();
-              
+
                 if (context.Request.IsWebSocketRequest)
                 {
                     // Permitir conexión desde cualquier origen
                     context.Response.AddHeader("Access-Control-Allow-Origin", "*");
+
+                    // Aceptar la conexión WebSocket
                     WebSocket webSocket = (await context.AcceptWebSocketAsync(null)).WebSocket;
-                   
-                    await HandleWebSocketConnection(webSocket);
+
+                    // Manejar la conexión en un nuevo Task para aceptar múltiples conexiones
+                    _ = Task.Run(() => HandleWebSocketConnection(webSocket));
                 }
                 else
                 {
@@ -45,30 +52,49 @@ namespace termalpinterd.services
             }
         }
 
-
         // Manejar la conexión WebSocket
         private async Task HandleWebSocketConnection(WebSocket webSocket)
         {
             var buffer = new byte[4096];
 
+            // Bucle para recibir mensajes mientras el WebSocket esté abierto
             while (webSocket.State == WebSocketState.Open)
             {
-                var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-                if (result.MessageType == WebSocketMessageType.Text)
+                try
                 {
-                    string message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-   
-                    try
+                    var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+
+                    if (result.MessageType == WebSocketMessageType.Text)
                     {
-                        var commands = Newtonsoft.Json.JsonConvert.DeserializeObject<PrintList>(message);
-                        _printerService.ProcessPrintData(commands!);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Error al procesar el comando: {ex.Message}");
+                        string message = Encoding.GetEncoding("IBM860").GetString(buffer, 0, result.Count);
+
+                        try
+                        {
+                            var commands = Newtonsoft.Json.JsonConvert.DeserializeObject<PrintList>(message);
+                            _printerService.ProcessPrintData(commands!);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Error al procesar el comando: {ex.Message}");
+                        }
                     }
                 }
+                catch (WebSocketException ex)
+                {
+                    Console.WriteLine($"Excepción de WebSocket: {ex.Message}");
+                    // Maneja el cierre de WebSocket aquí si es necesario.
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error inesperado: {ex.Message}");
+                    break;
+                }
             }
+
+            // Cierre de la conexión
+            Console.WriteLine("Conexión WebSocket cerrada.");
+            await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Cierre normal", CancellationToken.None);
         }
     }
 }
