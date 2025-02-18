@@ -24,7 +24,7 @@ namespace termalprinterd
         private IWebSocketService _webSocketService;
         private IStartUpService _startUpService;
         private IPrinterService _printerService;
-
+        private bool startInTray = false;
         // Constructor que inyecta las dependencias y configura los servicios
         public Form1(IWebSocketService socketService, IStartUpService startUpService, IPrinterService printer)
         {
@@ -39,7 +39,19 @@ namespace termalprinterd
             UpdateButtonState(); // Actualiza el estado del botón
 
         }
+        // Método para recibir el parámetro de inicio
+        public void SetStartInTray(bool startInTray)
+        {
+            this.startInTray = startInTray;
 
+            if (startInTray)
+            {
+                WindowState = FormWindowState.Minimized;
+                ShowInTaskbar = false;
+                Hide();
+                notifyIcon1.Visible = true;
+            }
+        }
         // Actualiza el texto del botón según si el inicio automático está habilitado
         public void UpdateButtonState()
         {

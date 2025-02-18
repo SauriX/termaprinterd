@@ -27,7 +27,7 @@ namespace termalpinterd.services
             
                 if (enable)
                 {
-                    registryKey.SetValue(AppName, $"\"{appPath}\""); // Se agregan comillas dobles
+                    registryKey.SetValue(AppName, $"\"{appPath}\" --startup");// Se agregan comillas dobles
                 }
                 else
                 {
