@@ -12,17 +12,27 @@ namespace termalprinterd
         [STAThread]
         static void Main()
         {
-            // To customize application configuration such as set high DPI settings or default font,
-            // see https://aka.ms/applicationconfiguration.
-            ApplicationConfiguration.Initialize();
-            var services = new ServiceCollection();
-            ConfigureServices(services);
-            using (var serviceProvider = services.BuildServiceProvider())
+       
+            try
             {
-                // Resolver y ejecutar el formulario principal
-                var mainForm = serviceProvider.GetRequiredService<Form1>();
-                Application.Run(mainForm);
+
+                // To customize application configuration such as set high DPI settings or default font,
+                // see https://aka.ms/applicationconfiguration.
+                ApplicationConfiguration.Initialize();
+                var services = new ServiceCollection();
+                ConfigureServices(services);
+                using (var serviceProvider = services.BuildServiceProvider())
+                {
+                    // Resolver y ejecutar el formulario principal
+                    var mainForm = serviceProvider.GetRequiredService<Form1>();
+                    Application.Run(mainForm);
+                }
             }
+            catch (Exception ex)
+            {
+
+            }
+
            
         }
 

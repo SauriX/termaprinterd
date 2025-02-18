@@ -18,34 +18,158 @@ namespace termalprinterd
     public partial class Form1 : Form
     {
         private ClientWebSocket _webSocketClient;
-
         private CancellationTokenSource _cancellationTokenSource;
         private Task _serverTask;
 
         private IWebSocketService _webSocketService;
         private IStartUpService _startUpService;
         private IPrinterService _printerService;
-        public Form1(IWebSocketService socketService, IStartUpService startUpService,IPrinterService printer)
+
+        // Constructor que inyecta las dependencias y configura los servicios
+        public Form1(IWebSocketService socketService, IStartUpService startUpService, IPrinterService printer)
         {
             InitializeComponent();
-            _webSocketClient = new ClientWebSocket();
-            _cancellationTokenSource = new CancellationTokenSource();
-           
+            _webSocketClient = new ClientWebSocket(); // Inicializa el cliente WebSocket
+            _cancellationTokenSource = new CancellationTokenSource(); // Fuente de cancelación para el WebSocket
+
             _webSocketService = socketService;
             _startUpService = startUpService;
             _printerService = printer;
-            UpdateButtonState();
+
+            UpdateButtonState(); // Actualiza el estado del botón
 
         }
-        public async Task TestPrintTicket()
+
+        // Actualiza el texto del botón según si el inicio automático está habilitado
+        public void UpdateButtonState()
+        {
+            if (_startUpService.IsStartupEnabled())
+            {
+                btnToggleStartup.Text = "Desactivar Inicio Automático";
+            }
+            else
+            {
+                btnToggleStartup.Text = "Activar Inicio Automático";
+            }
+        }
+
+        // Evento del botón para activar/desactivar el inicio automático
+        private void btnToggleStartup_Click(object sender, EventArgs e)
+        {
+            _startUpService.SetStartup(!_startUpService.IsStartupEnabled()); // Alterna el estado
+            UpdateButtonState(); // Actualiza el estado del botón
+        }
+
+        // Evento para cerrar la aplicación desde el menú
+        private void salirToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            notifyIcon1.Visible = false; // Oculta el icono de la bandeja
+            Application.Exit(); // Cierra la aplicación completamente
+        }
+
+        // Manejo del evento de cierre del formulario
+        private async void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            // Si el usuario cierra la ventana, la ocultamos y mostramos el icono en la bandeja
+            if (e.CloseReason == CloseReason.UserClosing)
+            {
+                e.Cancel = true; // Cancelamos el cierre
+                this.Hide(); // Ocultamos la ventana
+                notifyIcon1.Visible = true; // Mostramos el icono en la bandeja
+            }
+        }
+
+        // Evento de doble clic en el icono de la bandeja para restaurar la ventana
+        private void notifyIcon1_DoubleClick(object sender, EventArgs e)
+        {
+            this.Show(); // Muestra la ventana
+            this.WindowState = FormWindowState.Normal; // Restaura la ventana si estaba minimizada
+            notifyIcon1.Visible = false; // Oculta el icono de la bandeja
+        }
+
+        // Manejo de la carga del formulario
+        private async void Form1_Load(object sender, EventArgs e)
+        {
+            // Inicia el servidor WebSocket en un hilo separado
+            _serverTask = Task.Run(() => _webSocketService.StartWebSocketServer());
+
+            // Conexión al servidor WebSocket
+            string serverUrl = "ws://localhost:9090"; // URL del servidor WebSocket
+
+            try
+            {
+                lblStatus.Text = $"Estado: Conectando..."; // Muestra el estado de la conexión
+                await _webSocketClient.ConnectAsync(new Uri(serverUrl), _cancellationTokenSource.Token); // Intenta conectar
+                lblStatus.Text = $"Estado: Conectado"; // Muestra que se ha conectado
+
+                // Comienza a recibir mensajes
+                await ReceiveMessagesAsync();
+            }
+            catch (Exception ex)
+            {
+                lblStatus.Text = $"Error al conectar con WebSocket: {ex.Message}"; // Muestra error si no se puede conectar
+            }
+        }
+
+        // Función para recibir mensajes del servidor WebSocket
+        private async Task ReceiveMessagesAsync()
+        {
+            var buffer = new byte[1024 * 4]; // Buffer de 4 KB
+            while (_webSocketClient.State == WebSocketState.Open)
+            {
+                var result = await _webSocketClient.ReceiveAsync(new ArraySegment<byte>(buffer), _cancellationTokenSource.Token); // Recibe el mensaje
+                if (result.MessageType == WebSocketMessageType.Text) // Si el mensaje es de tipo texto
+                {
+                    string message = Encoding.UTF8.GetString(buffer, 0, result.Count); // Decodifica el mensaje
+                    MessageBox.Show(message); // Muestra el mensaje
+                }
+            }
+        }
+
+        // Función para cargar las impresoras instaladas en el sistema
+        private void CargarImpresoras()
+        {
+            // Limpiar el ListBox antes de cargar las impresoras
+            listBoxImpresoras.Items.Clear();
+
+            // Obtener la lista de impresoras instaladas
+            foreach (string printerName in PrinterSettings.InstalledPrinters)
+            {
+                listBoxImpresoras.Items.Add(printerName); // Añadir cada impresora al ListBox
+            }
+        }
+
+        // Evento para actualizar la lista de impresoras
+        private async void btnActualizar_Click(object sender, EventArgs e)
+        {
+            CargarImpresoras(); // Carga las impresoras
+        }
+
+        // Evento para probar la impresión en una impresora seleccionada
+        private void btnProbar_Click(object sender, EventArgs e)
+        {
+            if (listBoxImpresoras.SelectedItem != null) // Verifica que haya una impresora seleccionada
+            {
+                string impresoraSeleccionada = listBoxImpresoras.SelectedItem.ToString(); // Obtiene el nombre de la impresora seleccionada
+                MessageBox.Show($"Probando impresión en: {impresoraSeleccionada}"); // Muestra un mensaje de prueba
+
+                // Llamar a la función de prueba de impresión
+                TestPrintTicket(impresoraSeleccionada);
+            }
+            else
+            {
+                MessageBox.Show("Por favor, selecciona una impresora antes de probar."); // Muestra un mensaje si no se selecciona ninguna impresora
+            }
+        }
+
+        // Función para imprimir un ticket de prueba en una impresora
+        public async Task TestPrintTicket(string printer)
         {
             var printData = new PrintList
             {
-                printerName = "XP-58",
-                commands = new List<PrintCommand>
+                printerName = printer, // Asigna la impresora seleccionada
+                commands = new List<PrintCommand> // Define los comandos de impresión
                 {
-           
-
                     // Encabezado
                     new PrintCommand { Action = "center" },
                     new PrintCommand { Action = "bold", Text = "Tienda XYZ" },
@@ -97,170 +221,7 @@ namespace termalprinterd
                 }
             };
 
-            _printerService.ProcessPrintData(printData);
+            _printerService.ProcessPrintData(printData); // Procesa los datos de impresión
         }
-
-        // Actualizar el texto del botón según el estado
-        public void UpdateButtonState()
-        {
-            if (_startUpService.IsStartupEnabled())
-            {
-                btnToggleStartup.Text = "Desactivar Inicio Automático";
-            }
-            else
-            {
-                btnToggleStartup.Text = "Activar Inicio Automático";
-            }
-        }
-        // Evento del botón para activar/desactivar el inicio automático
-        private void btnToggleStartup_Click(object sender, EventArgs e)
-        {
-
-            _startUpService.SetStartup(!_startUpService.IsStartupEnabled()); // Alternar estado
-            UpdateButtonState();
-
-        }
-        private void salirToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            notifyIcon1.Visible = false; // Oculta el icono antes de salir
-            Application.Exit(); // Cierra la aplicación completamente
-        }
-        // Manejar el cierre del formulario
-        private async  void Form1_FormClosing(object sender, FormClosingEventArgs e)
-        {
-            // Si el usuario cierra la ventana, evitamos que la aplicación se cierre
-            if (e.CloseReason == CloseReason.UserClosing)
-            {
-                e.Cancel = true; // Cancelar el cierre de la ventana
-                this.Hide(); // Ocultar la ventana en lugar de cerrarla
-                notifyIcon1.Visible = true; // Mostrar el icono en la bandeja
-            }
-
-            /*if (_webSocketClient.State == WebSocketState.Open)
-            {
-                await _webSocketClient.CloseAsync(WebSocketCloseStatus.NormalClosure, "Cerrando conexión", CancellationToken.None);
-            }*/
-
-            // Detener el servidor WebSocket
-            //_httpListener.Stop();
-        }
-
-        // Manejar doble clic en el NotifyIcon para restaurar la ventana
-        private void notifyIcon1_DoubleClick(object sender, EventArgs e)
-        {
-            this.Show(); // Muestra la ventana
-            this.WindowState = FormWindowState.Normal; // Restaura si estaba minimizada
-            notifyIcon1.Visible = false; // Oculta el icono de la bandeja
-        }
-
-
-
-
-
-            
-        private async void Form1_Load(object sender, EventArgs e)
-        {
-            // Iniciar servidor WebSocket
-            _serverTask = Task.Run(() =>_webSocketService.StartWebSocketServer());
-
-            // Conectar al servidor WebSocket como cliente
-            string serverUrl = "ws://localhost:9090"; // Dirección del servidor WebSocket
-
-            try
-            {
-                await _webSocketClient.ConnectAsync(new Uri(serverUrl), _cancellationTokenSource.Token);
-               
-
-                // Comienza a recibir mensajes
-                await ReceiveMessagesAsync();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error al conectar con WebSocket: {ex.Message}");
-            }
-        }
-
-        // Función para recibir mensajes del servidor WebSocket
-        private async Task ReceiveMessagesAsync()
-        {
-            var buffer = new byte[1024 * 4];
-            while (_webSocketClient.State == WebSocketState.Open)
-            {
-                var result = await _webSocketClient.ReceiveAsync(new ArraySegment<byte>(buffer), _cancellationTokenSource.Token);
-                if (result.MessageType == WebSocketMessageType.Text)
-                {
-
-                    string message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                    MessageBox.Show(message);
-                   
-                }
-            }
-        }
-        private void CargarImpresoras()
-        {
-            // Limpiar el ListBox antes de cargar las impresoras
-            listBoxImpresoras.Items.Clear();
-
-            // Obtener la lista de impresoras instaladas
-            foreach (string printerName in PrinterSettings.InstalledPrinters)
-            {
-                listBoxImpresoras.Items.Add(printerName);
-            }
-
-           
-        }
-
-        // Agregar un botón en el formulario para actualizar la lista de impresoras
-        private async  void btnActualizar_Click(object sender, EventArgs e)
-        {
-            await TestPrintTicket();
-            CargarImpresoras();
-        }
-        // Procesar los datos para la impresión
-
-       
-        private async void btnSend_Click(object sender, EventArgs e)
-        {
-
-            if (_webSocketClient.State == WebSocketState.Open)
-            {
-
-                // Datos para enviar (como un POST)
-                var postData = new { id = 1, name = "John Doe", age = 30 };
-
-                // Llamamos al método para enviar los datos como POST a través de WebSocket
-                await SendPostRequestAsync("actualizar_datos", postData);
-            }
-            else
-            {
-                // Si la conexión no está abierta, mostrar mensaje de error
-                MessageBox.Show("Conexión WebSocket no está abierta.");
-            }
-        }
-
-        public async Task SendPostRequestAsync(string endpoint, object data)
-        {
-
-            // Serializamos el objeto a JSON
-            var message = new { endpoint, data };  // Un objeto que contiene el endpoint y los datos a enviar.
-            string messageJson = JsonConvert.SerializeObject(message);
-
-            // Mostrar mensaje serializado para depuración
-            Console.WriteLine("Enviando mensaje JSON: " + messageJson);
-
-            byte[] buffer = Encoding.UTF8.GetBytes(messageJson);
-            try
-            {
-                // Intentar enviar el mensaje
-                await _webSocketClient.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, CancellationToken.None);
-            }
-            catch (Exception ex)
-            {
-                // Si ocurre un error, mostrarlo
-                MessageBox.Show($"Error al enviar el mensaje: {ex.Message}");
-            }
-        }
-
-        
     }
 }
