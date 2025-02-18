@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using System.Text;
 using termalpinterd.Interfaces;
 using termalpinterd.services;
 
@@ -15,7 +16,8 @@ namespace termalprinterd
        
             try
             {
-
+                // Registrar el proveedor para codificaciones no predeterminadas
+                Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
                 // To customize application configuration such as set high DPI settings or default font,
                 // see https://aka.ms/applicationconfiguration.
                 ApplicationConfiguration.Initialize();
