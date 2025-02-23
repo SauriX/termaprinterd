@@ -15,6 +15,7 @@
         private System.Windows.Forms.ListBox listBoxImpresoras;
         private System.Windows.Forms.Button btnProbar;
         private System.Windows.Forms.Button btnUpdate;
+        private System.Windows.Forms.TextBox TextBoxIp;
 
         /// <summary>
         ///  Clean up any resources being used.
@@ -47,6 +48,7 @@
             lblStatus = new Label();
             btnProbar = new Button();
             btnUpdate = new Button();
+            TextBoxIp = new TextBox();
             contextMenuStrip1.SuspendLayout();
             SuspendLayout();
             // 
@@ -80,7 +82,7 @@
             // 
             // btnToggleStartup
             // 
-            btnToggleStartup.Location = new Point(41, 186);
+            btnToggleStartup.Location = new Point(41, 230);
             btnToggleStartup.Name = "btnToggleStartup";
             btnToggleStartup.Size = new Size(200, 40);
             btnToggleStartup.TabIndex = 0;
@@ -91,17 +93,16 @@
             // lblWebSocket
             // 
             lblWebSocket.AutoSize = true;
-            lblWebSocket.Location = new Point(56, 7);
+            lblWebSocket.Location = new Point(41, 0);
             lblWebSocket.Name = "lblWebSocket";
-            lblWebSocket.Size = new Size(174, 15);
+            lblWebSocket.Size = new Size(20, 15);
             lblWebSocket.TabIndex = 2;
-            lblWebSocket.Text = "WebSocket: ws://localhost:9090";
-            
+            lblWebSocket.Text = "ip:";
             // 
             // lblStatus
             // 
             lblStatus.AutoSize = true;
-            lblStatus.Location = new Point(80, 32);
+            lblStatus.Location = new Point(68, 32);
             lblStatus.Name = "lblStatus";
             lblStatus.Size = new Size(123, 15);
             lblStatus.TabIndex = 5;
@@ -109,7 +110,7 @@
             // 
             // btnProbar
             // 
-            btnProbar.Location = new Point(141, 150);
+            btnProbar.Location = new Point(141, 180);
             btnProbar.Name = "btnProbar";
             btnProbar.Size = new Size(100, 30);
             btnProbar.TabIndex = 4;
@@ -119,7 +120,7 @@
             // 
             // btnUpdate
             // 
-            btnUpdate.Location = new Point(41, 150);
+            btnUpdate.Location = new Point(41, 180);
             btnUpdate.Name = "btnUpdate";
             btnUpdate.Size = new Size(100, 30);
             btnUpdate.TabIndex = 3;
@@ -127,15 +128,26 @@
             btnUpdate.UseVisualStyleBackColor = true;
             btnUpdate.Click += btnActualizar_Click;
             // 
+            // TextBoxIp
+            // 
+            TextBoxIp.Location = new Point(67, 0);
+            TextBoxIp.Name = "TextBoxIp";
+            TextBoxIp.ReadOnly = true;
+            TextBoxIp.Size = new Size(200, 23);
+            TextBoxIp.TabIndex = 6;
+            TextBoxIp.TextAlign = HorizontalAlignment.Center;
+            TextBoxIp.Click += textBoxIP_Click;
+            // 
             // Form1
             // 
-            ClientSize = new Size(284, 261);
+            ClientSize = new Size(284, 300);
             Controls.Add(btnToggleStartup);
             Controls.Add(lblWebSocket);
             Controls.Add(listBoxImpresoras);
             Controls.Add(btnUpdate);
             Controls.Add(btnProbar);
             Controls.Add(lblStatus);
+            Controls.Add(TextBoxIp);
             Name = "Form1";
             FormClosing += Form1_FormClosing;
             Load += Form1_Load;

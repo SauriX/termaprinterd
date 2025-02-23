@@ -12,6 +12,7 @@ using System.Windows.Forms;
 using termalpinterd.helpers;
 using termalpinterd.Interfaces;
 using termalpinterd.Models;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace termalprinterd
 {
@@ -117,9 +118,10 @@ namespace termalprinterd
 
                 // Mostrar la IP encontrada en el WebSocket
                 string websocketUrl = $"ws://{localIp}:9090";
-                lblWebSocket.Text = $"WebSocket: {websocketUrl}";  // Asumiendo que tienes una etiqueta en tu formulario
-                // Comienza a recibir mensajes
-                await ReceiveMessagesAsync();
+                TextBoxIp.Text= localIp;
+                 // Asumiendo que tienes una etiqueta en tu formulario
+                 // Comienza a recibir mensajes
+                 await ReceiveMessagesAsync();
             }
             catch (Exception ex)
             {
@@ -290,5 +292,11 @@ namespace termalprinterd
 
             return ipAddress;
         }
+        private void textBoxIP_Click(object sender, EventArgs e)
+        {
+            Clipboard.SetText(TextBoxIp.Text);
+            MessageBox.Show("IP copiada al portapapeles", "Copiado", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
     }
 }
