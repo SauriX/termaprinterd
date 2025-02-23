@@ -113,7 +113,11 @@ namespace termalprinterd
                 lblStatus.Text = $"Estado: Conectando..."; // Muestra el estado de la conexión
                 await _webSocketClient.ConnectAsync(new Uri(serverUrl), _cancellationTokenSource.Token); // Intenta conectar
                 lblStatus.Text = $"Estado: Conectado"; // Muestra que se ha conectado
+                string localIp = GetLocalIPAddress();
 
+                // Mostrar la IP encontrada en el WebSocket
+                string websocketUrl = $"ws://{localIp}:9090";
+                lblWebSocket.Text = $"WebSocket: {websocketUrl}";  // Asumiendo que tienes una etiqueta en tu formulario
                 // Comienza a recibir mensajes
                 await ReceiveMessagesAsync();
             }
@@ -121,6 +125,9 @@ namespace termalprinterd
             {
                 lblStatus.Text = $"Error al conectar con WebSocket: {ex.Message}"; // Muestra error si no se puede conectar
             }
+
+
+
         }
 
         // Función para recibir mensajes del servidor WebSocket
@@ -234,6 +241,54 @@ namespace termalprinterd
             };
 
             _printerService.ProcessPrintData(printData); // Procesa los datos de impresión
+        }
+
+        private string GetLocalIPAddress()
+        {
+            string ipAddress = "localhost"; // Valor predeterminado
+            string connectionType = "Desconocido";
+
+            foreach (var networkInterface in System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces())
+            {
+                // Verifica si la interfaz está activa
+                if (networkInterface.OperationalStatus == System.Net.NetworkInformation.OperationalStatus.Up)
+                {
+                    // Ignorar interfaces vEthernet
+                    if (networkInterface.Name.Contains("vEthernet"))
+                    {
+                        continue; // Salta esta interfaz y sigue con la siguiente
+                    }
+                    // Identificar el tipo de conexión
+                    if (networkInterface.NetworkInterfaceType == System.Net.NetworkInformation.NetworkInterfaceType.Ethernet)
+                    {
+                        connectionType = "Ethernet";
+                    }
+                    else if (networkInterface.NetworkInterfaceType == System.Net.NetworkInformation.NetworkInterfaceType.Wireless80211)
+                    {
+                        connectionType = "Wi-Fi";
+                    }
+                    else if (networkInterface.NetworkInterfaceType == System.Net.NetworkInformation.NetworkInterfaceType.Wwanpp)
+                    {
+                        connectionType = "Móvil (Cable del celular)";
+                    }
+
+                    // Buscar una dirección IP de tipo IPv4
+                    foreach (var unicastAddress in networkInterface.GetIPProperties().UnicastAddresses)
+                    {
+                        if (unicastAddress.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                        {
+                            ipAddress = unicastAddress.Address.ToString();
+                            Console.WriteLine($"Conexión: {connectionType}, IP: {ipAddress}");
+                            break;  // Solo toma la primera IP encontrada para esa interfaz
+                        }
+                    }
+
+                    if (connectionType != "Desconocido")
+                        break;  // Si encontramos la conexión, detenemos la búsqueda
+                }
+            }
+
+            return ipAddress;
         }
     }
 }

@@ -37,7 +37,6 @@
         /// </summary>
         private void InitializeComponent()
         {
-            Icon = new Icon(Path.Combine(Application.StartupPath, "Assets", "icon.ico"));
             components = new System.ComponentModel.Container();
             listBoxImpresoras = new ListBox();
             notifyIcon1 = new NotifyIcon(components);
@@ -62,7 +61,6 @@
             // 
             // notifyIcon1
             // 
-            notifyIcon1.Icon = new Icon(Path.Combine(Application.StartupPath, "Assets", "icon.ico"));
             notifyIcon1.ContextMenuStrip = contextMenuStrip1;
             notifyIcon1.Text = "Termal Printer Server";
             notifyIcon1.DoubleClick += notifyIcon1_DoubleClick;
@@ -98,6 +96,7 @@
             lblWebSocket.Size = new Size(174, 15);
             lblWebSocket.TabIndex = 2;
             lblWebSocket.Text = "WebSocket: ws://localhost:9090";
+            
             // 
             // lblStatus
             // 
