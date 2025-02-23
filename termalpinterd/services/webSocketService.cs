@@ -87,16 +87,28 @@ namespace termalpinterd.services
                     if (result.MessageType == WebSocketMessageType.Text)
                     {
                         string message = Encoding.GetEncoding("IBM860").GetString(buffer, 0, result.Count);
+                        // Si el mensaje es "hola", responder con "Hola"
+                        if (message.Trim().ToLower() == "printers")
+                        {
+                            string response = Newtonsoft.Json.JsonConvert.SerializeObject(_printerService.CargarImpresoras());
+                            byte[] responseBytes = Encoding.GetEncoding("IBM860").GetBytes(response);
+                            await webSocket.SendAsync(new ArraySegment<byte>(responseBytes), WebSocketMessageType.Text, true, CancellationToken.None);
+                            continue; // Sigue esperando otros mensajes
+                        }
+                        else
+                        {
+                            try
+                            {
+                                var commands = Newtonsoft.Json.JsonConvert.DeserializeObject<PrintList>(message);
+                                _printerService.ProcessPrintData(commands!);
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"Error al procesar el comando: {ex.Message}");
+                            }
 
-                        try
-                        {
-                            var commands = Newtonsoft.Json.JsonConvert.DeserializeObject<PrintList>(message);
-                            _printerService.ProcessPrintData(commands!);
                         }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"Error al procesar el comando: {ex.Message}");
-                        }
+
                     }
                 }
                 catch (WebSocketException ex)

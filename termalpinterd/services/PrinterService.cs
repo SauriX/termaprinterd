@@ -9,6 +9,7 @@ using termalpinterd.helpers;
 using termalpinterd.Models;
 using ESC_POS_USB_NET.Enums;
 using termalpinterd.Interfaces;
+using System.Drawing.Printing;
 namespace termalpinterd.services
 {
     public class PrinterService:IPrinterService
@@ -83,6 +84,22 @@ namespace termalpinterd.services
 
                 Console.WriteLine($"Error al procesar la impresión: {ex.Message}");
             }
+        }
+
+
+        // Función para cargar las impresoras instaladas en el sistema
+        public Printers CargarImpresoras()
+        {
+            var PrinterList = new Printers();
+            PrinterList.printers = new List<string>();
+
+            // Obtener la lista de impresoras instaladas
+            foreach (string printerName in PrinterSettings.InstalledPrinters)
+            {
+                PrinterList.printers.Add(printerName); // Añadir cada impresora al ListBox
+            }
+
+            return PrinterList;
         }
     }
 }

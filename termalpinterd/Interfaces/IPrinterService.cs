@@ -10,5 +10,6 @@ namespace termalpinterd.Interfaces
     public interface IPrinterService
     {
          void ProcessPrintData(PrintList print);
+        Printers CargarImpresoras();
     }
 }
