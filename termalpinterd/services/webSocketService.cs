@@ -74,7 +74,7 @@ namespace termalpinterd.services
 
         // Manejar la conexión WebSocket
         private async Task HandleWebSocketConnection(WebSocket webSocket)
-        {
+            {
             var buffer = new byte[10485760]; // 10 MB
 
             // Bucle para recibir mensajes mientras el WebSocket esté abierto

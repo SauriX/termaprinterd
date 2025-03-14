@@ -65,6 +65,7 @@
             // 
             notifyIcon1.ContextMenuStrip = contextMenuStrip1;
             notifyIcon1.Text = "Termal Printer Server";
+            notifyIcon1.Icon = new Icon("assets/icon.ico"); // Cambia la ruta por la correcta
             notifyIcon1.DoubleClick += notifyIcon1_DoubleClick;
             // 
             // contextMenuStrip1
@@ -148,7 +149,7 @@
             Controls.Add(btnProbar);
             Controls.Add(lblStatus);
             Controls.Add(TextBoxIp);
-            Name = "Form1";
+            Name = "Printer";
             FormClosing += Form1_FormClosing;
             Load += Form1_Load;
             contextMenuStrip1.ResumeLayout(false);
