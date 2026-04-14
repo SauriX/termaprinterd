@@ -31,16 +31,16 @@ namespace termalprinterd
         {
             InitializeComponent();
             _webSocketClient = new ClientWebSocket(); // Inicializa el cliente WebSocket
-            _cancellationTokenSource = new CancellationTokenSource(); // Fuente de cancelación para el WebSocket
+            _cancellationTokenSource = new CancellationTokenSource(); // Fuente de cancelaciï¿½n para el WebSocket
 
             _webSocketService = socketService;
             _startUpService = startUpService;
             _printerService = printer;
 
-            UpdateButtonState(); // Actualiza el estado del botón
+            UpdateButtonState(); // Actualiza el estado del botï¿½n
 
         }
-        // Método para recibir el parámetro de inicio
+        // Mï¿½todo para recibir el parï¿½metro de inicio
         public void SetStartInTray(bool startInTray)
         {
             this.startInTray = startInTray;
@@ -53,31 +53,31 @@ namespace termalprinterd
                 notifyIcon1.Visible = true;
             }
         }
-        // Actualiza el texto del botón según si el inicio automático está habilitado
+        // Actualiza el texto del botï¿½n segï¿½n si el inicio automï¿½tico estï¿½ habilitado
         public void UpdateButtonState()
         {
             if (_startUpService.IsStartupEnabled())
             {
-                btnToggleStartup.Text = "Desactivar Inicio Automático";
+                btnToggleStartup.Text = "Desactivar Inicio Automï¿½tico";
             }
             else
             {
-                btnToggleStartup.Text = "Activar Inicio Automático";
+                btnToggleStartup.Text = "Activar Inicio Automï¿½tico";
             }
         }
 
-        // Evento del botón para activar/desactivar el inicio automático
+        // Evento del botï¿½n para activar/desactivar el inicio automï¿½tico
         private void btnToggleStartup_Click(object sender, EventArgs e)
         {
             _startUpService.SetStartup(!_startUpService.IsStartupEnabled()); // Alterna el estado
-            UpdateButtonState(); // Actualiza el estado del botón
+            UpdateButtonState(); // Actualiza el estado del botï¿½n
         }
 
-        // Evento para cerrar la aplicación desde el menú
+        // Evento para cerrar la aplicaciï¿½n desde el menï¿½
         private void salirToolStripMenuItem_Click(object sender, EventArgs e)
         {
             notifyIcon1.Visible = false; // Oculta el icono de la bandeja
-            Application.Exit(); // Cierra la aplicación completamente
+            Application.Exit(); // Cierra la aplicaciï¿½n completamente
         }
 
         // Manejo del evento de cierre del formulario
@@ -104,14 +104,14 @@ namespace termalprinterd
         private async void Form1_Load(object sender, EventArgs e)
         {
             // Inicia el servidor WebSocket en un hilo separado
-            _serverTask = Task.Run(() => _webSocketService.StartWebSocketServer());
+            _serverTask = _webSocketService.StartWebSocketServer();
 
-            // Conexión al servidor WebSocket
+            // Conexiï¿½n al servidor WebSocket
             string serverUrl = "ws://localhost:9090"; // URL del servidor WebSocket
 
             try
             {
-                lblStatus.Text = $"Estado: Conectando..."; // Muestra el estado de la conexión
+                lblStatus.Text = $"Estado: Conectando..."; // Muestra el estado de la conexiï¿½n
                 await _webSocketClient.ConnectAsync(new Uri(serverUrl), _cancellationTokenSource.Token); // Intenta conectar
                 lblStatus.Text = $"Estado: Conectado"; // Muestra que se ha conectado
                 string localIp = GetLocalIPAddress();
@@ -132,7 +132,7 @@ namespace termalprinterd
 
         }
 
-        // Función para recibir mensajes del servidor WebSocket
+        // Funciï¿½n para recibir mensajes del servidor WebSocket
         private async Task ReceiveMessagesAsync()
         {
             var buffer = new byte[1024 * 4]; // Buffer de 4 KB
@@ -147,7 +147,7 @@ namespace termalprinterd
             }
         }
 
-        // Función para cargar las impresoras instaladas en el sistema
+        // Funciï¿½n para cargar las impresoras instaladas en el sistema
         private void CargarImpresoras()
         {
             // Limpiar el ListBox antes de cargar las impresoras
@@ -156,7 +156,7 @@ namespace termalprinterd
             // Obtener la lista de impresoras instaladas
             foreach (string printerName in PrinterSettings.InstalledPrinters)
             {
-                listBoxImpresoras.Items.Add(printerName); // Añadir cada impresora al ListBox
+                listBoxImpresoras.Items.Add(printerName); // Aï¿½adir cada impresora al ListBox
             }
         }
 
@@ -166,15 +166,15 @@ namespace termalprinterd
             CargarImpresoras(); // Carga las impresoras
         }
 
-        // Evento para probar la impresión en una impresora seleccionada
+        // Evento para probar la impresiï¿½n en una impresora seleccionada
         private void btnProbar_Click(object sender, EventArgs e)
         {
             if (listBoxImpresoras.SelectedItem != null) // Verifica que haya una impresora seleccionada
             {
                 string impresoraSeleccionada = listBoxImpresoras.SelectedItem.ToString(); // Obtiene el nombre de la impresora seleccionada
-                MessageBox.Show($"Probando impresión en: {impresoraSeleccionada}"); // Muestra un mensaje de prueba
+                MessageBox.Show($"Probando impresiï¿½n en: {impresoraSeleccionada}"); // Muestra un mensaje de prueba
 
-                // Llamar a la función de prueba de impresión
+                // Llamar a la funciï¿½n de prueba de impresiï¿½n
                 TestPrintTicket(impresoraSeleccionada);
             }
             else
@@ -183,13 +183,13 @@ namespace termalprinterd
             }
         }
 
-        // Función para imprimir un ticket de prueba en una impresora
+        // Funciï¿½n para imprimir un ticket de prueba en una impresora
         public async Task TestPrintTicket(string printer)
         {
             var printData = new PrintList
             {
                 printerName = printer, // Asigna la impresora seleccionada
-                commands = new List<PrintCommand> // Define los comandos de impresión
+                commands = new List<PrintCommand> // Define los comandos de impresiï¿½n
                 {
                     // Encabezado
                     new PrintCommand { Action = "center" },
@@ -210,7 +210,7 @@ namespace termalprinterd
                     new PrintCommand { Action = "separator" },
 
                     // Detalles de compra
-                    new PrintCommand { Action = "bold", Text = "Cant Descripción  Precio  Total" },
+                    new PrintCommand { Action = "bold", Text = "Cant Descripciï¿½n  Precio  Total" },
                     new PrintCommand { Action = "newLine" },
                     new PrintCommand { Action = "text", Text = "  2  Producto A   $10.00  $20.00" },
                     new PrintCommand { Action = "newLine" },
@@ -224,14 +224,14 @@ namespace termalprinterd
                     new PrintCommand { Action = "newLine" },
                     new PrintCommand { Action = "separator" },
 
-                    // Código de barras
+                    // Cï¿½digo de barras
                     new PrintCommand { Action = "center" },
                     new PrintCommand { Action = "code39", Text = "234567890" },
                     new PrintCommand { Action = "newLine" },
 
                     // Mensaje de agradecimiento
                     new PrintCommand { Action = "center" },
-                    new PrintCommand { Action = "bold", Text = "¡Gracias por su compra!" },
+                    new PrintCommand { Action = "bold", Text = "ï¿½Gracias por su compra!" },
                     new PrintCommand { Action = "newLine" },
                     new PrintCommand { Action = "separator" },
 
@@ -242,7 +242,7 @@ namespace termalprinterd
                 }
             };
 
-            _printerService.ProcessPrintData(printData); // Procesa los datos de impresión
+            _printerService.ProcessPrintData(printData); // Procesa los datos de impresiï¿½n
         }
 
         private string GetLocalIPAddress()
@@ -252,7 +252,7 @@ namespace termalprinterd
 
             foreach (var networkInterface in System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces())
             {
-                // Verifica si la interfaz está activa
+                // Verifica si la interfaz estï¿½ activa
                 if (networkInterface.OperationalStatus == System.Net.NetworkInformation.OperationalStatus.Up)
                 {
                     // Ignorar interfaces vEthernet
@@ -260,7 +260,7 @@ namespace termalprinterd
                     {
                         continue; // Salta esta interfaz y sigue con la siguiente
                     }
-                    // Identificar el tipo de conexión
+                    // Identificar el tipo de conexiï¿½n
                     if (networkInterface.NetworkInterfaceType == System.Net.NetworkInformation.NetworkInterfaceType.Ethernet)
                     {
                         connectionType = "Ethernet";
@@ -271,22 +271,22 @@ namespace termalprinterd
                     }
                     else if (networkInterface.NetworkInterfaceType == System.Net.NetworkInformation.NetworkInterfaceType.Wwanpp)
                     {
-                        connectionType = "Móvil (Cable del celular)";
+                        connectionType = "Mï¿½vil (Cable del celular)";
                     }
 
-                    // Buscar una dirección IP de tipo IPv4
+                    // Buscar una direcciï¿½n IP de tipo IPv4
                     foreach (var unicastAddress in networkInterface.GetIPProperties().UnicastAddresses)
                     {
                         if (unicastAddress.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
                         {
                             ipAddress = unicastAddress.Address.ToString();
-                            Console.WriteLine($"Conexión: {connectionType}, IP: {ipAddress}");
+                            Console.WriteLine($"Conexiï¿½n: {connectionType}, IP: {ipAddress}");
                             break;  // Solo toma la primera IP encontrada para esa interfaz
                         }
                     }
 
                     if (connectionType != "Desconocido")
-                        break;  // Si encontramos la conexión, detenemos la búsqueda
+                        break;  // Si encontramos la conexiï¿½n, detenemos la bï¿½squeda
                 }
             }
 

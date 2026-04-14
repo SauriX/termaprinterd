@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System.Text;
 using termalpinterd.Interfaces;
 using termalpinterd.services;
@@ -42,20 +43,30 @@ namespace termalprinterd
             }
             catch (Exception ex)
             {
-                
+                MessageBox.Show($"Error iniciando aplicación: {ex.Message}");
             }
         }
 
 
         private static void ConfigureServices(ServiceCollection services)
         {
+            // Configurar Logging
+            services.AddLogging(builder =>
+            {
+                builder.AddConsole();
+                builder.SetMinimumLevel(LogLevel.Information);
+            });
+
+            // Agregar MemoryCache para caché de imágenes
+            services.AddMemoryCache();
+
             // Registrar Form1
             services.AddTransient<Form1>();
 
             // Registrar servicios
             services.AddSingleton<IWebSocketService, WebSocketService>(); 
             services.AddSingleton<IStartUpService, StartUpService>();
-            services.AddSingleton<IPrinterService,PrinterService>();
+            services.AddSingleton<IPrinterService, PrinterService>();
         }
     }
 }

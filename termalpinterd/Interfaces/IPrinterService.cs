@@ -9,7 +9,7 @@ namespace termalpinterd.Interfaces
 {
     public interface IPrinterService
     {
-         void ProcessPrintData(PrintList print);
+        Task ProcessPrintData(PrintList print);
         Printers CargarImpresoras();
     }
 }

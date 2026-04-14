@@ -8,6 +8,6 @@ namespace termalpinterd.Interfaces
 {
     public interface IWebSocketService
     {
-        void StartWebSocketServer();
+        Task StartWebSocketServer();
     }
 }

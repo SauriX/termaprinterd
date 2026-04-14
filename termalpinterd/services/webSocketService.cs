@@ -11,6 +11,7 @@ using termalpinterd.Models;
 using System.Diagnostics;
 using System.Net.Sockets;
 using System.Security.Principal;
+using Microsoft.Extensions.Logging;
 
 namespace termalpinterd.services
 {
@@ -18,64 +19,90 @@ namespace termalpinterd.services
     {
         private HttpListener _httpListener;
         private IPrinterService _printerService;
+        private readonly ILogger<WebSocketService>? _logger;
+        private const int BufferSize = 65536; // 64 KB
+        private const string DefaultPort = "9090";
+        private const string DefaultHost = "+";
 
-        public WebSocketService(IPrinterService printerService)
+        public WebSocketService(IPrinterService printerService, ILogger<WebSocketService>? logger = null)
         {
             _printerService = printerService;
+            _logger = logger;
         }
 
         // Iniciar servidor WebSocket en un puerto específico
-        public async void StartWebSocketServer()
+        public async Task StartWebSocketServer()
         {
-
-
-            var port = "9090";
+            var port = Environment.GetEnvironmentVariable("WEBSOCKET_PORT") ?? DefaultPort;
             _httpListener = new HttpListener();
-            _httpListener.Prefixes.Add("http://+:9090/");
+            _httpListener.Prefixes.Add($"http://{DefaultHost}:{port}/");
 
             try
             {
                 // Intentar abrir una conexión al puerto especificado
                 _httpListener.Start();
-              
-
+                _logger?.LogInformation($"Servidor WebSocket iniciado en puerto {port}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"No se pudo acceder al puerto {port}. Error: {ex.Message}");
-                // Si no se puede acceder al puerto, llamar a AllowPortAccess
-
+                _logger?.LogError($"No se pudo acceder al puerto {port}. Error: {ex.Message}");
                 RequestAdminPermissionsAndRetry(port);
             }
-            
-            Console.WriteLine("Servidor WebSocket iniciado. Esperando conexiones...");
+
+            _logger?.LogInformation("Servidor WebSocket esperando conexiones...");
 
             while (_httpListener.IsListening)
             {
-                HttpListenerContext context = await _httpListener.GetContextAsync();
-
-                if (context.Request.IsWebSocketRequest)
+                try
                 {
-                    // Permitir conexión desde cualquier origen
-                    context.Response.AddHeader("Access-Control-Allow-Origin", "*");
+                    HttpListenerContext context = await _httpListener.GetContextAsync();
 
-                    // Aceptar la conexión WebSocket
-                    WebSocket webSocket = (await context.AcceptWebSocketAsync(null)).WebSocket;
+                    // Health check endpoint
+                    if (context.Request.HttpMethod == "GET" && context.Request.Url.LocalPath == "/health")
+                    {
+                        var healthResponse = new { status = "healthy", timestamp = DateTime.UtcNow };
+                        string healthJson = JsonConvert.SerializeObject(healthResponse);
+                        byte[] healthBytes = Encoding.UTF8.GetBytes(healthJson);
 
-                    // Manejar la conexión en un nuevo Task para aceptar múltiples conexiones
-                    _ = Task.Run(() => HandleWebSocketConnection(webSocket));
+                        context.Response.ContentType = "application/json";
+                        context.Response.ContentLength64 = healthBytes.Length;
+                        await context.Response.OutputStream.WriteAsync(healthBytes, 0, healthBytes.Length);
+                        context.Response.OutputStream.Close();
+                        continue;
+                    }
+
+                    if (context.Request.IsWebSocketRequest)
+                    {
+                        // Permitir conexión desde cualquier origen (CORS abierto)
+                        context.Response.AddHeader("Access-Control-Allow-Origin", "*");
+                        context.Response.AddHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
+                        context.Response.AddHeader("Access-Control-Allow-Headers", "Content-Type");
+
+                        // Aceptar la conexión WebSocket
+                        WebSocket webSocket = (await context.AcceptWebSocketAsync(null)).WebSocket;
+                        _logger?.LogInformation($"Nueva conexión WebSocket establecida");
+
+                        // Manejar la conexión en un nuevo Task para aceptar múltiples conexiones
+                        _ = Task.Run(() => HandleWebSocketConnection(webSocket));
+                    }
+                    else
+                    {
+                        _logger?.LogWarning("Solicitud no es de WebSocket");
+                        context.Response.StatusCode = 400;
+                        context.Response.Close();
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    Console.WriteLine("Solicitud no es de WebSocket");
+                    _logger?.LogError($"Error aceptando conexión: {ex.Message}");
                 }
             }
         }
 
         // Manejar la conexión WebSocket
         private async Task HandleWebSocketConnection(WebSocket webSocket)
-            {
-            var buffer = new byte[10485760]; // 10 MB
+        {
+            var buffer = new byte[BufferSize]; // 64 KB en lugar de 10 MB
 
             // Bucle para recibir mensajes mientras el WebSocket esté abierto
             while (webSocket.State == WebSocketState.Open)
@@ -86,47 +113,74 @@ namespace termalpinterd.services
 
                     if (result.MessageType == WebSocketMessageType.Text)
                     {
-                        string message = Encoding.GetEncoding("IBM860").GetString(buffer, 0, result.Count);
-                        // Si el mensaje es "hola", responder con "Hola"
+                        string message = Encoding.UTF8.GetString(buffer, 0, result.Count);
+
+                        // Comando para obtener lista de impresoras
                         if (message.Trim().ToLower() == "printers")
-                        {
-                            string response = Newtonsoft.Json.JsonConvert.SerializeObject(_printerService.CargarImpresoras());
-                            byte[] responseBytes = Encoding.GetEncoding("IBM860").GetBytes(response);
-                            await webSocket.SendAsync(new ArraySegment<byte>(responseBytes), WebSocketMessageType.Text, true, CancellationToken.None);
-                            continue; // Sigue esperando otros mensajes
-                        }
-                        else
                         {
                             try
                             {
-                                var commands = Newtonsoft.Json.JsonConvert.DeserializeObject<PrintList>(message);
-                                _printerService.ProcessPrintData(commands!);
+                                string response = JsonConvert.SerializeObject(_printerService.CargarImpresoras());
+                                byte[] responseBytes = Encoding.UTF8.GetBytes(response);
+                                await webSocket.SendAsync(new ArraySegment<byte>(responseBytes), WebSocketMessageType.Text, true, CancellationToken.None);
                             }
                             catch (Exception ex)
                             {
-                                Console.WriteLine($"Error al procesar el comando: {ex.Message}");
+                                _logger?.LogError($"Error al obtener impresoras: {ex.Message}");
                             }
-
+                            continue;
                         }
 
+                        // Procesar comando de impresión
+                        try
+                        {
+                            var settings = new JsonSerializerSettings 
+                            { 
+                                NullValueHandling = NullValueHandling.Ignore 
+                            };
+                            var commands = JsonConvert.DeserializeObject<PrintList>(message, settings);
+                            
+                            if (commands?.commands == null || commands.commands.Count == 0)
+                            {
+                                _logger?.LogWarning("Comando recibido sin acciones válidas");
+                                continue;
+                            }
+
+                            await _printerService.ProcessPrintData(commands);
+                        }
+                        catch (JsonSerializationException jex)
+                        {
+                            _logger?.LogError($"Error al deserializar JSON: {jex.Message}");
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger?.LogError($"Error al procesar comando: {ex.Message}");
+                        }
                     }
                 }
                 catch (WebSocketException ex)
                 {
-                    Console.WriteLine($"Excepción de WebSocket: {ex.Message}");
-                    // Maneja el cierre de WebSocket aquí si es necesario.
+                    _logger?.LogError($"Excepción de WebSocket: {ex.Message}");
                     break;
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error inesperado: {ex.Message}");
+                    _logger?.LogError($"Error inesperado: {ex.Message}");
                     break;
                 }
             }
 
             // Cierre de la conexión
-            Console.WriteLine("Conexión WebSocket cerrada.");
-            await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Cierre normal", CancellationToken.None);
+            _logger?.LogInformation("Conexión WebSocket cerrada");
+            try
+            {
+                await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Cierre normal", CancellationToken.None);
+            }
+            catch { }
+            finally
+            {
+                webSocket?.Dispose();
+            }
         }
 
         public static void AllowPortAccess(string port)
